@@ -17,8 +17,8 @@ import (
 )
 
 type ShortenLink struct {
-	Url string `json:"url"`
-	// custom_alias string `json:"custom_alias"`
+	Url          string `json:"url"`
+	Custom_alias string `json:"custom_alias"`
 	// expiration_date string `json:"expiration_date"`
 
 }
@@ -51,7 +51,14 @@ func shortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, u
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Cannot parse JSON"})
 	}
 
-	ShortLink := randstr.Hex(8) // Generate a random 8 character string
+	var ShortLink string
+
+	if url.Custom_alias == "" {
+		ShortLink = randstr.Hex(8) // Generate a random 8 character string
+	} else {
+		ShortLink = url.Custom_alias
+	}
+
 	LongLink := url.Url
 	uuid := uuid.New()
 
