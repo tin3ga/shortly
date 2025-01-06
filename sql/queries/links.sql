@@ -11,6 +11,6 @@ LIMIT 1;
 -- name: DeleteLink :exec
 DELETE FROM shortly WHERE short_link = $1;
 
--- name: ListLinks :many
+-- name: GetLinks :many
 SELECT * FROM shortly
 ORDER BY created_at DESC;
