@@ -45,32 +45,13 @@ func (q *Queries) DeleteLink(ctx context.Context, shortLink string) error {
 	return err
 }
 
-const getLongLink = `-- name: GetLongLink :one
-SELECT id, short_link, long_link, created_at, updated_at FROM shortly
-WHERE short_link = $1
-LIMIT 1
-`
-
-func (q *Queries) GetLongLink(ctx context.Context, shortLink string) (Shortly, error) {
-	row := q.db.QueryRowContext(ctx, getLongLink, shortLink)
-	var i Shortly
-	err := row.Scan(
-		&i.ID,
-		&i.ShortLink,
-		&i.LongLink,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const listLinks = `-- name: ListLinks :many
+const getLinks = `-- name: GetLinks :many
 SELECT id, short_link, long_link, created_at, updated_at FROM shortly
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListLinks(ctx context.Context) ([]Shortly, error) {
-	rows, err := q.db.QueryContext(ctx, listLinks)
+func (q *Queries) GetLinks(ctx context.Context) ([]Shortly, error) {
+	rows, err := q.db.QueryContext(ctx, getLinks)
 	if err != nil {
 		return nil, err
 	}
@@ -96,4 +77,23 @@ func (q *Queries) ListLinks(ctx context.Context) ([]Shortly, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getLongLink = `-- name: GetLongLink :one
+SELECT id, short_link, long_link, created_at, updated_at FROM shortly
+WHERE short_link = $1
+LIMIT 1
+`
+
+func (q *Queries) GetLongLink(ctx context.Context, shortLink string) (Shortly, error) {
+	row := q.db.QueryRowContext(ctx, getLongLink, shortLink)
+	var i Shortly
+	err := row.Scan(
+		&i.ID,
+		&i.ShortLink,
+		&i.LongLink,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

@@ -92,6 +92,16 @@ func deleteLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context) er
 
 }
 
+func getLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
+	data, err := queries.GetLinks(ctx)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Cannot fetch links"})
+	}
+	log.Println("Fetching links")
+	return c.JSON(data)
+
+}
+
 func main() {
 
 	godotenv.Load()
@@ -114,15 +124,6 @@ func main() {
 	ctx := context.Background()
 	queries := database.New(db)
 
-	// data, err := queries.ListLinks(ctx)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// for _, item := range data {
-	// 	fmt.Println(item.ShortLink, item.LongLink)
-	// }
-
 	app := fiber.New()
 
 	app.Get("", ping)
@@ -134,6 +135,9 @@ func main() {
 	})
 	app.Delete("/api/v1/shorten", func(c *fiber.Ctx) error {
 		return deleteLink(c, queries, ctx)
+	})
+	app.Get("/api/v1/", func(c *fiber.Ctx) error {
+		return getLinks(c, queries, ctx)
 	})
 
 	app.Listen(":" + portString)
