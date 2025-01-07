@@ -18,9 +18,9 @@ RETURNING id, short_link, long_link, created_at, updated_at
 `
 
 type CreateShortLinkParams struct {
-	ID        uuid.UUID
-	ShortLink string
-	LongLink  string
+	ID        uuid.UUID `json:"id"`
+	ShortLink string    `json:"short_link"`
+	LongLink  string    `json:"long_link"`
 }
 
 func (q *Queries) CreateShortLink(ctx context.Context, arg CreateShortLinkParams) (Shortly, error) {
