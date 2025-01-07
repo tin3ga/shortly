@@ -25,7 +25,7 @@ info:
     url: https://mit-license.org/
   termsOfService: http://swagger.io/terms/
   title: Shortly API
-  version: 0.1.1
+  version: 0.2.0
 paths:
   /:
     get:
