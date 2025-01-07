@@ -3,14 +3,18 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/swagger" // swagger handler
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/thanhpk/randstr"
 
 	"github.com/tin3ga/shortly/internal/database"
@@ -19,7 +23,7 @@ import (
 	_ "github.com/tin3ga/shortly/docs"
 )
 
-const version = "0.1.1"
+const version = "0.2.0"
 
 // Shorten Link model info
 //
@@ -61,13 +65,59 @@ func ping(c *fiber.Ctx) error {
 //	@Success		301
 //	@Failure		404
 //	@Router			/api/v1/{link} [get]
-func getLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
+func getLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, rdb *redis.Client, ttl time.Duration) error {
 	link := c.Params("link")
 
+	// caching - Get
+
+	// check if rdb is not nil to prevent nil pointer dereference error
+	if rdb != nil {
+		val, err := rdb.Get(ctx, link).Result()
+		if err != nil {
+			log.Printf("Cannot find data with key: %s", link)
+		}
+
+		if val != "" {
+
+			var data database.Shortly
+			err := json.Unmarshal([]byte(val), &data)
+			if err != nil {
+				log.Printf("Error unmarshaling data: %v", err)
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error"})
+			}
+
+			log.Println("Redirecting to: ", data.LongLink)
+			return c.Redirect(data.LongLink, fiber.StatusMovedPermanently)
+
+		}
+
+	}
+	// end caching - Get
+
+	// check if value in database, returns if no data is found skips caching set
 	data, err := queries.GetLongLink(ctx, link)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "short url not found"})
 	}
+
+	// caching - Set
+	// cache results if data exists key is short url/link
+	if rdb != nil {
+		marshalData, err := json.Marshal(data)
+		if err != nil {
+			log.Print(err)
+		}
+		// add a item to cache if it did not exist
+
+		err = rdb.Set(ctx, link, marshalData, ttl).Err()
+		if err != nil {
+			log.Print(err)
+		} else {
+			log.Print("Item added to cache")
+		}
+
+	}
+
 	log.Println("Redirecting to: ", data.LongLink)
 	return c.Redirect(data.LongLink, fiber.StatusMovedPermanently)
 
@@ -109,7 +159,7 @@ func shortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, u
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Cannot create short link"})
 	}
-	log.Println("Created a shortend link: ", ShortLink)
+	log.Println("Created a shortened link: ", ShortLink)
 
 	return c.JSON(fiber.Map{"Success": "Shortened link created", "url": urlStr + ShortLink})
 }
@@ -142,7 +192,7 @@ func deleteLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context) er
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Cannot delete short link"})
 	}
 
-	log.Println("Deleted a shortend link: ", url.Url)
+	log.Println("Deleted a shortened link: ", url.Url)
 	return c.JSON(fiber.Map{"Success": "Shortened link deleted"})
 
 }
@@ -160,12 +210,13 @@ func getLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) erro
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Cannot fetch links"})
 	}
 	log.Println("Fetching links")
+
 	return c.JSON(data)
 
 }
 
 //	@title			Shortly API
-//	@version		0.1.1
+//	@version		0.2.0
 //	@description	This is a URL Shortener backend API built with Go.
 //	@termsOfService	http://swagger.io/terms/
 //	@contact.name	API Support
@@ -182,6 +233,11 @@ func main() {
 	portString := os.Getenv("PORT")
 	connStr := os.Getenv("DATABASE_URL")
 	urlStr := os.Getenv("URL")
+	redisAddr := os.Getenv("REDIS_ADDR")
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisDB := os.Getenv("REDIS_DB")
+	enableCaching := os.Getenv("cachingEnabled")
+	ttlStr := os.Getenv("cache_ttl")
 
 	log.Printf("Starting server on port %v", portString)
 	log.Printf("Serving version %v", version)
@@ -198,6 +254,44 @@ func main() {
 	ctx := context.Background()
 	queries := database.New(db)
 
+	// Redis setup
+	var cachingEnabled bool
+	if enableCaching != "" {
+		cachingEnabled, err = strconv.ParseBool(enableCaching)
+		if err != nil {
+			log.Fatalf("Invalid ENABLE_CACHING value: %v", err)
+		}
+	}
+	log.Printf("Caching Enabled: %v", cachingEnabled)
+
+	// Convert Redis cache ttl from string to int
+	var ttlInt int
+	if ttlStr != "" {
+		var err error
+		ttlInt, err = strconv.Atoi(redisDB)
+		if err != nil {
+			log.Fatalf("Invalid cache_ttl: %v", err)
+		}
+	}
+
+	ttl := time.Duration(ttlInt) * time.Minute
+
+	var rdb *redis.Client
+
+	if cachingEnabled {
+		rdb, err = initializeRedis(ctx, redisAddr, redisPassword, redisDB)
+
+		if err != nil {
+			log.Fatalf("Failed to initialize Redis: %v", err)
+		}
+		defer rdb.Close() // Close Redis client when no longer needed
+
+	}
+
+	log.Printf("Redis Connection: %v", rdb)
+
+	// end Redis setup
+
 	app := fiber.New()
 
 	// Enable CORS
@@ -210,7 +304,7 @@ func main() {
 
 	app.Get("/", ping)
 	app.Get("/api/v1/:link", func(c *fiber.Ctx) error {
-		return getLink(c, queries, ctx)
+		return getLink(c, queries, ctx, rdb, ttl)
 	})
 	app.Post("/api/v1/shorten", func(c *fiber.Ctx) error {
 		return shortenLink(c, queries, ctx, urlStr)
@@ -223,4 +317,35 @@ func main() {
 	})
 
 	app.Listen(":" + portString)
+}
+
+func initializeRedis(ctx context.Context, redisAddr string, redisPassword string, redisDB string) (*redis.Client, error) {
+	// Convert Redis DB from string to int
+	var redisDBInt int
+	if redisDB != "" {
+		var err error
+		redisDBInt, err = strconv.Atoi(redisDB)
+		if err != nil {
+			log.Fatalf("Invalid REDIS_DB: %v", err)
+		}
+	}
+	// Create Redis client
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     redisAddr,
+		Password: redisPassword,
+		DB:       redisDBInt,
+	})
+
+	pong, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("Cannot connect to redis db: \nError %v", err)
+		return nil, err
+	}
+
+	if pong == "PONG" {
+		log.Print("Connected to cache server")
+
+	}
+
+	return rdb, nil
 }

@@ -11,9 +11,9 @@ import (
 )
 
 type Shortly struct {
-	ID        uuid.UUID
-	ShortLink string
-	LongLink  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uuid.UUID `json:"id"`
+	ShortLink string    `json:"short_link"`
+	LongLink  string    `json:"long_link"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
