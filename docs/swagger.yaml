@@ -1,0 +1,98 @@
+basePath: /
+definitions:
+  main.DeleteLink:
+    description: Delete Link Model Url
+    properties:
+      url:
+        type: string
+    type: object
+  main.ShortenLink:
+    description: Shorten link Model Url, Custom_alias
+    properties:
+      custom_alias:
+        type: string
+      url:
+        type: string
+    type: object
+host: https://shortly-5p7d.onrender.com
+info:
+  contact:
+    email: tinegagideon@outlook.com
+    name: API Support
+  description: This is a URL Shortener backend API built with Go.
+  license:
+    name: MIT License
+    url: https://mit-license.org/
+  termsOfService: http://swagger.io/terms/
+  title: Shortly API
+  version: 0.1.1
+paths:
+  /:
+    get:
+      description: Returns pong
+      responses:
+        "200":
+          description: OK
+      summary: Checks connectivity
+  /api/v1/:
+    get:
+      description: Returns all links
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Fetch all links
+  /api/v1/{link}:
+    get:
+      description: Redirects to the original URL
+      parameters:
+      - description: Redirects to Original URL
+        in: path
+        name: link
+        required: true
+        type: string
+      responses:
+        "301":
+          description: Moved Permanently
+        "404":
+          description: Not Found
+      summary: Fetch a Original URL by Short URL
+  /api/v1/shorten:
+    delete:
+      description: Returns a success message
+      parameters:
+      - description: Delete a Link
+        in: body
+        name: url
+        required: true
+        schema:
+          $ref: '#/definitions/main.DeleteLink'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+      summary: Delete url data by short url
+    post:
+      description: Returns a Short URL
+      parameters:
+      - description: Shorten a Link (custom alias is optional)
+        in: body
+        name: shorten_link
+        required: true
+        schema:
+          $ref: '#/definitions/main.ShortenLink'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      summary: Insert an entry for a Short URL and Long URL
+swagger: "2.0"
