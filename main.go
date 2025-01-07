@@ -172,7 +172,7 @@ func getLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) erro
 //	@contact.email	tinegagideon@outlook.com
 //	@license.name	MIT License
 //	@license.url	https://mit-license.org/
-//	@host			https://shortly-5p7d.onrender.com
+//	@host			shortly-5p7d.onrender.com
 //	@BasePath		/
 
 func main() {

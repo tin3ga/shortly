@@ -14,7 +14,7 @@
         },
         "version": "0.1.1"
     },
-    "host": "https://shortly-5p7d.onrender.com",
+    "host": "shortly-5p7d.onrender.com",
     "basePath": "/",
     "paths": {
         "/": {

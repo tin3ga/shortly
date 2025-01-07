@@ -14,7 +14,7 @@ definitions:
       url:
         type: string
     type: object
-host: https://shortly-5p7d.onrender.com
+host: shortly-5p7d.onrender.com
 info:
   contact:
     email: tinegagideon@outlook.com
