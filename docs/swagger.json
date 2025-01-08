@@ -12,7 +12,7 @@
             "name": "MIT License",
             "url": "https://mit-license.org/"
         },
-        "version": "0.2.0"
+        "version": "0.3.0"
     },
     "host": "shortly-5p7d.onrender.com",
     "basePath": "/",
