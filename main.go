@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/swagger" // swagger handler
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
@@ -23,7 +25,7 @@ import (
 	_ "github.com/tin3ga/shortly/docs"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 // Shorten Link model info
 //
@@ -216,7 +218,7 @@ func getLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) erro
 }
 
 //	@title			Shortly API
-//	@version		0.2.0
+//	@version		0.3.0
 //	@description	This is a URL Shortener backend API built with Go.
 //	@termsOfService	http://swagger.io/terms/
 //	@contact.name	API Support
@@ -238,6 +240,9 @@ func main() {
 	redisDB := os.Getenv("REDIS_DB")
 	enableCaching := os.Getenv("cachingEnabled")
 	ttlStr := os.Getenv("cache_ttl")
+	enableRateLimiting := os.Getenv("rateLimitingEnabled")
+	maxConnStr := os.Getenv("max_connections_limit")
+	expirationStr := os.Getenv("expiration")
 
 	log.Printf("Starting server on port %v", portString)
 	log.Printf("Serving version %v", version)
@@ -265,13 +270,10 @@ func main() {
 	log.Printf("Caching Enabled: %v", cachingEnabled)
 
 	// Convert Redis cache ttl from string to int
-	var ttlInt int
-	if ttlStr != "" {
-		var err error
-		ttlInt, err = strconv.Atoi(redisDB)
-		if err != nil {
-			log.Fatalf("Invalid cache_ttl: %v", err)
-		}
+
+	ttlInt, err := convertStr_Int(ttlStr)
+	if err != nil {
+		log.Printf("cache_ttl %v", err)
 	}
 
 	ttl := time.Duration(ttlInt) * time.Minute
@@ -300,6 +302,45 @@ func main() {
 		AllowMethods: "GET,POST,PUT,DELETE",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
+
+	// Rate limiter
+
+	// Set up in-memory store for the rate limiter
+	var rateLimitingEnabled bool
+	if enableRateLimiting != "" {
+		rateLimitingEnabled, err = strconv.ParseBool(enableRateLimiting)
+		if err != nil {
+			log.Fatalf("Invalid ENABLE_LIMITING value: %v", err)
+		}
+	}
+	log.Printf("Rate Limiting Enabled: %v", rateLimitingEnabled)
+
+	max_conn, err := convertStr_Int(maxConnStr)
+	if err != nil {
+		log.Printf("max_connections_limit %v", err)
+	}
+	log.Printf("Max Connection Value: %v", max_conn)
+
+	exp, err := convertStr_Int(expirationStr)
+	if err != nil {
+		log.Printf("expiration %v", err)
+	}
+	log.Printf("Expiration value: %v", exp)
+
+	if rateLimitingEnabled {
+		cfg := limiter.Config{
+			Max:        max_conn,
+			Expiration: time.Duration(exp) * time.Minute,
+			LimitReached: func(c *fiber.Ctx) error {
+				return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": "Request limit reached! Try again later:)"})
+			},
+			SkipFailedRequests:     false,
+			SkipSuccessfulRequests: false,
+		}
+		app.Use(limiter.New(cfg))
+
+	}
+
 	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
 	app.Get("/", ping)
@@ -321,13 +362,9 @@ func main() {
 
 func initializeRedis(ctx context.Context, redisAddr string, redisPassword string, redisDB string) (*redis.Client, error) {
 	// Convert Redis DB from string to int
-	var redisDBInt int
-	if redisDB != "" {
-		var err error
-		redisDBInt, err = strconv.Atoi(redisDB)
-		if err != nil {
-			log.Fatalf("Invalid REDIS_DB: %v", err)
-		}
+	redisDBInt, err := convertStr_Int(redisDB)
+	if err != nil {
+		log.Printf("redisDB %v", err)
 	}
 	// Create Redis client
 	rdb := redis.NewClient(&redis.Options{
@@ -348,4 +385,17 @@ func initializeRedis(ctx context.Context, redisAddr string, redisPassword string
 	}
 
 	return rdb, nil
+}
+
+func convertStr_Int(value string) (int, error) {
+	if value == "" {
+		return 0, fmt.Errorf("value is empty")
+
+	}
+	converted_value, err := strconv.Atoi(value)
+	if err != nil {
+		return 0, fmt.Errorf("invalid value: %w", err)
+	}
+
+	return converted_value, nil
 }
