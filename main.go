@@ -5,9 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -132,13 +136,45 @@ func getLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, rdb *
 //	@Param			shorten_link	body	ShortenLink	true	"Shorten a Link (custom alias is optional)"
 //	@Success		200
 //	@Failure		400
+//	@Failure		403
 //	@Failure		500
 //	@Router			/api/v1/shorten [post]
-func shortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, urlStr string) error {
+func shortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, urlStr string, apiKey string) error {
 	url := new(ShortenLink)
 
 	if err := c.BodyParser(url); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Cannot parse JSON"})
+	}
+
+	// Check if the URL starts with "https"
+	if !strings.HasPrefix(url.Url, "https://") {
+		log.Printf("Invalid URL scheme: %v", url.Url)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "URL must start with https://",
+			"url":   url.Url,
+		})
+
+	}
+
+	// Validate the URL using the external API
+	result, err := urlValidation(url.Url, apiKey)
+	if err != nil {
+		if err.Error() == "API error" {
+			log.Print(err)
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Check that url is valid / try again later:)", "url": url.Url})
+		}
+		log.Print(err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "External API error, try again later:)"})
+
+	}
+
+	// Handle malicious URL detection
+	if result == "malicious" {
+		log.Printf("Malicious url detected: %v", url.Url)
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Url is malicious", "url": url.Url})
+
+	} else {
+		log.Printf("URL provided: %v is %v", url.Url, result)
 	}
 
 	var ShortLink string
@@ -157,8 +193,11 @@ func shortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, u
 		ShortLink: ShortLink,
 		LongLink:  LongLink,
 	}
-	_, err := queries.CreateShortLink(ctx, params)
+	_, err = queries.CreateShortLink(ctx, params)
 	if err != nil {
+		if err.Error() == "pq: duplicate key value violates unique constraint \"unique_short_link\"" {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Duplicate short link, create a new alias"})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Cannot create short link"})
 	}
 	log.Println("Created a shortened link: ", ShortLink)
@@ -243,6 +282,7 @@ func main() {
 	enableRateLimiting := os.Getenv("rateLimitingEnabled")
 	maxConnStr := os.Getenv("max_connections_limit")
 	expirationStr := os.Getenv("expiration")
+	apiKey := os.Getenv("apiKey")
 
 	log.Printf("Starting server on port %v", portString)
 	log.Printf("Serving version %v", version)
@@ -348,7 +388,7 @@ func main() {
 		return getLink(c, queries, ctx, rdb, ttl)
 	})
 	app.Post("/api/v1/shorten", func(c *fiber.Ctx) error {
-		return shortenLink(c, queries, ctx, urlStr)
+		return shortenLink(c, queries, ctx, urlStr, apiKey)
 	})
 	app.Delete("/api/v1/shorten", func(c *fiber.Ctx) error {
 		return deleteLink(c, queries, ctx)
@@ -398,4 +438,80 @@ func convertStr_Int(value string) (int, error) {
 	}
 
 	return converted_value, nil
+}
+
+func urlValidation(link string, apiKey string) (string, error) {
+	api := "https://api.metadefender.com/v4/url/"
+	if apiKey == "" {
+		// log.Print("API key missing")
+		return "Api not found", fmt.Errorf("API key is required")
+	}
+
+	encodedURL := url.QueryEscape(link)
+
+	apiUrl := api + encodedURL
+
+	req, err := http.NewRequest("GET", apiUrl, nil)
+	if err != nil {
+		// log.Printf("Failed to create request: %v", err)
+		return "Failed to create request", err
+	}
+
+	req.Header.Add("apiKey", apiKey)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		// log.Printf("Failed to perform request: %v", err)
+		return "Failed to perform request", err
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		// log.Printf("Failed to read response body: %v", err)
+		return "Failed to read response body", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		// log.Printf("API call failed with status: %d, response: %s", res.StatusCode, string(body))
+		return fmt.Sprintf("API call failed with status: %d", res.StatusCode), fmt.Errorf("API error")
+	}
+
+	// Parse the JSON response body into a map.
+	var responseMap map[string]interface{}
+	err = json.Unmarshal(body, &responseMap)
+	if err != nil {
+		// log.Printf("Failed to parse response body: %v", err)
+		return "Failed to parse response body", err
+	}
+
+	// responseMap := map[string]interface{}{
+	// 	"address": "https://google.com",
+	// 	"lookup_results": map[string]interface{}{
+	// 		"detected_by": 0,
+	// 		"sources": []map[string]interface{}{
+	// 			{
+	// 				"assessment":  "trustworthy",
+	// 				"category":    "Search Engines",
+	// 				"detect_time": "",
+	// 				"provider":    "webroot.com",
+	// 				"status":      0,
+	// 				"update_time": "2025-01-09T08:59:38.413Z",
+	// 			},
+	// 		},
+	// 		"start_time": "2025-01-09T09:47:56.759Z",
+	// 	},
+	// }
+	lookup_results := responseMap["lookup_results"].(map[string]interface{})
+
+	detected_by := lookup_results["detected_by"].(float64)
+
+	if detected_by != 0.0 {
+		return "malicious", nil
+
+	} else {
+		return "safe", nil
+
+	}
+
 }
