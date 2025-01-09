@@ -92,6 +92,8 @@ paths:
           description: OK
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
         "500":
           description: Internal Server Error
       summary: Insert an entry for a Short URL and Long URL

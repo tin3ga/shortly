@@ -70,6 +70,9 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request"
                     },
+                    "403": {
+                        "description": "Forbidden"
+                    },
                     "500": {
                         "description": "Internal Server Error"
                     }
