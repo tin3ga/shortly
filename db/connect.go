@@ -6,8 +6,8 @@ import (
 	"log"
 )
 
-func ConnectDB(db_url string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", db_url)
+func ConnectDB(dbUrl string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
 		return nil, fmt.Errorf("%s", err.Error())
 	}
