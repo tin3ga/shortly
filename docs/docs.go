@@ -59,7 +59,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.ShortenLink"
+                            "$ref": "#/definitions/handler.ShortenLinkModel"
                         }
                     }
                 ],
@@ -88,7 +88,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/main.DeleteLink"
+                            "$ref": "#/definitions/handler.DeleteLinkModel"
                         }
                     }
                 ],
@@ -133,7 +133,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "main.DeleteLink": {
+        "handler.DeleteLinkModel": {
             "description": "Delete Link Model Url",
             "type": "object",
             "properties": {
@@ -142,7 +142,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.ShortenLink": {
+        "handler.ShortenLinkModel": {
             "description": "Shorten link Model Url, Custom_alias",
             "type": "object",
             "properties": {
