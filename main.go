@@ -16,7 +16,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/healthcheck"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/swagger" // swagger handler
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
@@ -311,7 +313,7 @@ func main() {
 
 	// Convert Redis cache ttl from string to int
 
-	ttlInt, err := convertStr_Int(ttlStr)
+	ttlInt, err := convertStr(ttlStr)
 	if err != nil {
 		log.Printf("cache_ttl %v", err)
 	}
@@ -355,13 +357,13 @@ func main() {
 	}
 	log.Printf("Rate Limiting Enabled: %v", rateLimitingEnabled)
 
-	max_conn, err := convertStr_Int(maxConnStr)
+	max_conn, err := convertStr(maxConnStr)
 	if err != nil {
 		log.Printf("max_connections_limit %v", err)
 	}
 	log.Printf("Max Connection Value: %v", max_conn)
 
-	exp, err := convertStr_Int(expirationStr)
+	exp, err := convertStr(expirationStr)
 	if err != nil {
 		log.Printf("expiration %v", err)
 	}
@@ -380,6 +382,21 @@ func main() {
 		app.Use(limiter.New(cfg))
 
 	}
+
+	// health check
+	// Provide a minimal config
+	app.Use(healthcheck.New())
+
+	// Initialize default config (Assign the middleware to /metrics)
+	// app.Get("/metrics", monitor.New())
+	metricsCfg := monitor.Config{
+		Title:      "Shortly_Monitor",
+		FontURL:    "https://fonts.googleapis.com/css2?family=Roboto:wght@200;400&display=swap",
+		ChartJsURL: "https://cdn.jsdelivr.net/npm/chart.js@2.9/dist/Chart.bundle.min.js",
+		APIOnly:    false,
+		Next:       nil,
+	}
+	app.Get("/metrics", monitor.New(metricsCfg))
 
 	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
@@ -402,7 +419,7 @@ func main() {
 
 func initializeRedis(ctx context.Context, redisAddr string, redisPassword string, redisDB string) (*redis.Client, error) {
 	// Convert Redis DB from string to int
-	redisDBInt, err := convertStr_Int(redisDB)
+	redisDBInt, err := convertStr(redisDB)
 	if err != nil {
 		log.Printf("redisDB %v", err)
 	}
@@ -427,7 +444,7 @@ func initializeRedis(ctx context.Context, redisAddr string, redisPassword string
 	return rdb, nil
 }
 
-func convertStr_Int(value string) (int, error) {
+func convertStr(value string) (int, error) {
 	if value == "" {
 		return 0, fmt.Errorf("value is empty")
 
@@ -502,11 +519,11 @@ func urlValidation(link string, apiKey string) (string, error) {
 	// 		"start_time": "2025-01-09T09:47:56.759Z",
 	// 	},
 	// }
-	lookup_results := responseMap["lookup_results"].(map[string]interface{})
+	lookupResults := responseMap["lookup_results"].(map[string]interface{})
 
-	detected_by := lookup_results["detected_by"].(float64)
+	detectedBy := lookupResults["detected_by"].(float64)
 
-	if detected_by != 0.0 {
+	if detectedBy != 0.0 {
 		return "malicious", nil
 
 	} else {
