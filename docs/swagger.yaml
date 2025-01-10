@@ -1,12 +1,12 @@
 basePath: /
 definitions:
-  main.DeleteLink:
+  handler.DeleteLinkModel:
     description: Delete Link Model Url
     properties:
       url:
         type: string
     type: object
-  main.ShortenLink:
+  handler.ShortenLinkModel:
     description: Shorten link Model Url, Custom_alias
     properties:
       custom_alias:
@@ -67,7 +67,7 @@ paths:
         name: url
         required: true
         schema:
-          $ref: '#/definitions/main.DeleteLink'
+          $ref: '#/definitions/handler.DeleteLinkModel'
       responses:
         "200":
           description: OK
@@ -86,7 +86,7 @@ paths:
         name: shorten_link
         required: true
         schema:
-          $ref: '#/definitions/main.ShortenLink'
+          $ref: '#/definitions/handler.ShortenLinkModel'
       responses:
         "200":
           description: OK
