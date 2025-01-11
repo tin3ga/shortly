@@ -62,8 +62,6 @@ func main() {
 			log.Fatalf("Failed to initialize Redis: %v", err)
 		}
 		defer rdb.Close() // Close Redis client when no longer needed
-
-		log.Printf("--Redis Connection: %v", rdb)
 		log.Printf("--Cache TTL: %v", cfg.CacheTTL)
 
 	}
@@ -121,7 +119,7 @@ func main() {
 
 	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
-	router.SetupRoutes(app, queries, ctx, rdb, cfg.CacheTTL, cfg.URL, cfg.APIKey)
+	router.SetupRoutes(app, queries, ctx, rdb, cfg.CacheTTL, cfg.URL, cfg.APIKey, cfg.JWTSecret)
 
 	app.Listen(":" + cfg.Port)
 }
