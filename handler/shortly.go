@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/thanhpk/randstr"
@@ -50,6 +51,31 @@ func GetLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) erro
 	log.Println("Fetching links")
 
 	return c.JSON(data)
+
+}
+func GetUserLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
+
+	authHeader := c.Get("Authorization")
+
+	userIDString, err := GetUserIDFromClaims(c, authHeader)
+	if err != nil {
+		log.Print(err)
+	}
+	userID, err := uuid.Parse(userIDString)
+	if err != nil {
+		log.Printf("Error parsing UserID: %v", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Invalid UserID format"})
+	}
+
+	data, err := queries.GetUserLinks(ctx, userID)
+
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "Cannot fetch links"})
+	}
+
+	log.Println("Fetching User links")
+
+	return c.Status(fiber.StatusOK).JSON(data)
 
 }
 
@@ -114,6 +140,12 @@ func GetLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, rdb *
 
 	}
 
+	// increment click count by one
+
+	if err := queries.IncrementClickCount(ctx, link); err != nil {
+		log.Print(err)
+	}
+
 	log.Println("Redirecting to: ", data.LongLink)
 	return c.Redirect(data.LongLink, fiber.StatusMovedPermanently)
 
@@ -176,15 +208,63 @@ func ShortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, u
 	}
 
 	LongLink := url.Url
-	uuid := uuid.New()
+	uuidUser := uuid.New()
+
+	authHeader := c.Get("Authorization")
+
+	// type UserClaims struct {
+	// 	Userid   string `json:"userid"`
+	// 	Username string `json:"username"`
+	// 	jwt.RegisteredClaims
+	// }
+
+	// cfg := config.InitializeConfig()
+	// var jwtSecret = []byte(cfg.JWTSecret)
+
+	// tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	// // Parse and verify the token
+	// token, err := jwt.ParseWithClaims(tokenString, &UserClaims{}, func(token *jwt.Token) (interface{}, error) {
+	// 	// Validate the algorithm
+	// 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+	// 		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+	// 	}
+	// 	return jwtSecret, nil
+	// })
+
+	// if err != nil || !token.Valid {
+	// 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Invalid token"})
+	// }
+
+	// // Extract user claims
+	// claims, ok := token.Claims.(*UserClaims)
+	// if !ok {
+	// 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "message": "Invalid token claims"})
+	// }
+
+	// // Store the user info in the context
+	// c.Locals("userid", claims.Userid)
+	// c.Locals("username", claims.Username)
+
+	userIDString, err := GetUserIDFromClaims(c, authHeader)
+	if err != nil {
+		log.Print(err)
+	}
+	userID, err := uuid.Parse(userIDString)
+	if err != nil {
+		log.Printf("Error parsing UserID: %v", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Invalid UserID format"})
+	}
+	log.Print(userID)
 
 	params := database.CreateShortLinkParams{
-		ID:        uuid,
+		ID:        uuidUser,
+		UserID:    userID,
 		ShortLink: ShortLink,
 		LongLink:  LongLink,
 	}
 	_, err = queries.CreateShortLink(ctx, params)
 	if err != nil {
+		log.Print(err)
 		if err.Error() == "pq: duplicate key value violates unique constraint \"unique_short_link\"" {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Duplicate short link, create a new alias"})
 		}
