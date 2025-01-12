@@ -63,7 +63,7 @@ func InitializeConfig() *ConfigParams {
 		EnableRateLimiting:     enableRateLimiting,
 		MaxConnectionsLimit:    maxConnections,
 		RateLimitExpiration:    time.Duration(expiration) * time.Minute,
-		APIKey:                 Config("apiKey"),
+		APIKey:                 Config("api_Key"),
 		SkipFailedRequests:     skip_failed_requests,
 		SkipSuccessfulRequests: skip_successful_requests,
 		Title:                  Config("metrics_title"),
