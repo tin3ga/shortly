@@ -11,9 +11,20 @@ import (
 )
 
 type Shortly struct {
-	ID        uuid.UUID `json:"id"`
-	ShortLink string    `json:"short_link"`
-	LongLink  string    `json:"long_link"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         uuid.UUID `json:"id"`
+	UserID     uuid.UUID `json:"user_id"`
+	ShortLink  string    `json:"short_link"`
+	LongLink   string    `json:"long_link"`
+	ClickCount int32     `json:"click_count"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type User struct {
+	ID           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
