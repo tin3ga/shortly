@@ -103,18 +103,18 @@ func ValidateToken(token *jwt.Token, username string) bool {
 //	@Router			/api/v1/auth/ [post]
 func Login(c *fiber.Ctx, queries *database.Queries, ctx context.Context, jwtsecret string) error {
 
-	login_identity := new(UserInput)
+	loginIdentity := new(UserInput)
 
-	if err := c.BodyParser(login_identity); err != nil {
+	if err := c.BodyParser(loginIdentity); err != nil {
 		log.Print(err)
 	}
 
 	var userModel database.User
 	var err error
-	if isEmail(login_identity.Identity) {
-		userModel, err = queries.GetUserByEmail(ctx, login_identity.Identity)
+	if isEmail(loginIdentity.Identity) {
+		userModel, err = queries.GetUserByEmail(ctx, loginIdentity.Identity)
 	} else {
-		userModel, err = queries.GetUserByUsername(ctx, login_identity.Identity)
+		userModel, err = queries.GetUserByUsername(ctx, loginIdentity.Identity)
 
 	}
 	log.Print(userModel)
@@ -129,7 +129,7 @@ func Login(c *fiber.Ctx, queries *database.Queries, ctx context.Context, jwtsecr
 	}
 
 	// Invalidate user with  wrong password
-	if !CheckPasswordHash(userModel.PasswordHash, login_identity.Password) {
+	if !CheckPasswordHash(userModel.PasswordHash, loginIdentity.Password) {
 		return c.JSON(fiber.Map{"error": "Unauthorized, invalid password"})
 
 	}

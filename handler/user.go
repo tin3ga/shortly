@@ -47,31 +47,31 @@ func hashPassword(password string) (string, error) {
 //	@Router			/api/v1/users/ [post]
 func CreateUser(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
 
-	new_user := new(User)
+	newUser := new(User)
 
-	if err := c.BodyParser(new_user); err != nil {
+	if err := c.BodyParser(newUser); err != nil {
 		log.Print(err)
 	}
 
-	if new_user.Username == "" || new_user.Email == "" {
+	if newUser.Username == "" || newUser.Email == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "username and email required"})
 	}
 	// Email validation using regex
 	emailRegex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
-	if !regexp.MustCompile(emailRegex).MatchString(new_user.Email) {
-		log.Print("Invalid email format:", new_user.Email)
+	if !regexp.MustCompile(emailRegex).MatchString(newUser.Email) {
+		log.Print("Invalid email format:", newUser.Email)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid email format"})
 	}
-	if new_user.Password == "" {
+	if newUser.Password == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "password is required"})
 	}
 	// Password validation (simple example, could be extended for strength checks)
-	if len(new_user.Password) < 8 {
+	if len(newUser.Password) < 8 {
 		log.Print("Password is too short")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Password must be at least 8 characters"})
 	}
 
-	hash, err := hashPassword(new_user.Password)
+	hash, err := hashPassword(newUser.Password)
 	if err != nil {
 
 		log.Print(err)
@@ -80,8 +80,8 @@ func CreateUser(c *fiber.Ctx, queries *database.Queries, ctx context.Context) er
 
 	createUserParams := database.CreateUserParams{
 		ID:           uuid,
-		Username:     new_user.Username,
-		Email:        new_user.Email,
+		Username:     newUser.Username,
+		Email:        newUser.Email,
 		PasswordHash: hash,
 	}
 

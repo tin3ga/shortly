@@ -13,7 +13,7 @@ import (
 )
 
 // SetupRoutes setup router api
-func SetupRoutes(app *fiber.App, queries *database.Queries, ctx context.Context, rdb *redis.Client, ttl time.Duration, urlStr string, apiKey string, jwtsecret string) {
+func SetupRoutes(app *fiber.App, queries *database.Queries, ctx context.Context, rdb *redis.Client, ttl time.Duration, apiKey string, jwtsecret string) {
 	app.Get("/", handler.Ping)
 	app.Get("/:link", func(c *fiber.Ctx) error {
 		return handler.GetLink(c, queries, ctx, rdb, ttl)
@@ -48,7 +48,7 @@ func SetupRoutes(app *fiber.App, queries *database.Queries, ctx context.Context,
 	})
 
 	links.Post("/shorten", middleware.Protected(), func(c *fiber.Ctx) error {
-		return handler.ShortenLink(c, queries, ctx, urlStr, apiKey)
+		return handler.ShortenLink(c, queries, ctx, apiKey)
 	})
 	links.Delete("/shorten", middleware.Protected(), func(c *fiber.Ctx) error {
 		return handler.DeleteLink(c, queries, ctx)

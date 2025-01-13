@@ -173,7 +173,7 @@ func GetLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, rdb *
 //	@Failure		403
 //	@Failure		500
 //	@Router			/api/v1/links/shorten [post]
-func ShortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, urlStr string, apiKey string) error {
+func ShortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, apiKey string) error {
 	url := new(ShortenLinkModel)
 
 	if err := c.BodyParser(url); err != nil {
@@ -284,7 +284,7 @@ func ShortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, u
 	}
 	log.Println("Created a shortened link: ", ShortLink)
 
-	return c.JSON(fiber.Map{"Success": "Shortened link created", "url": urlStr + ShortLink})
+	return c.JSON(fiber.Map{"Success": "Shortened link created", "url link": ShortLink})
 }
 
 // deleteLink Delete url data by short url
