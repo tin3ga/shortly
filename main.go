@@ -119,7 +119,7 @@ func main() {
 
 	app.Get("/swagger/*", swagger.HandlerDefault) // default
 
-	router.SetupRoutes(app, queries, ctx, rdb, cfg.CacheTTL, cfg.URL, cfg.APIKey, cfg.JWTSecret)
+	router.SetupRoutes(app, queries, ctx, rdb, cfg.CacheTTL, cfg.APIKey, cfg.JWTSecret)
 
 	app.Listen(":" + cfg.Port)
 }
