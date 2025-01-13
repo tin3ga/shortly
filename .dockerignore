@@ -1,0 +1,6 @@
+Dockerfile
+docker-compose.yml
+.env
+tmp/
+.vscode/
+vendor/
