@@ -12,7 +12,13 @@ func ConnectDB(dbUrl string) (*sql.DB, error) {
 		return nil, fmt.Errorf("%s", err.Error())
 	}
 
-	log.Println("Connected to Database!")
+	err = db.Ping()
+	if err != nil {
+		log.Printf("Cannot connect to postgres db: \nError %v", err)
+		return nil, err
+	}
+
+	log.Print("Connected to Postgres DB")
 
 	return db, nil
 }

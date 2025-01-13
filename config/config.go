@@ -16,7 +16,11 @@ func Config(key string) string {
 	// load .env file
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Print("Error loading .env file")
+		if err.Error() != "open .env: no such file or directory" {
+			log.Print(err)
+
+		}
+
 	}
 	return os.Getenv(key)
 }
