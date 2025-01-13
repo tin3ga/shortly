@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -16,7 +16,7 @@ func Config(key string) string {
 	// load .env file
 	err := godotenv.Load(".env")
 	if err != nil {
-		fmt.Print("Error loading .env file")
+		log.Print("Error loading .env file")
 	}
 	return os.Getenv(key)
 }
@@ -39,6 +39,7 @@ type ConfigParams struct {
 	SkipSuccessfulRequests bool
 	Title                  string
 	FontURL                string
+	JWTSecret              string
 }
 
 func InitializeConfig() *ConfigParams {
@@ -62,10 +63,11 @@ func InitializeConfig() *ConfigParams {
 		EnableRateLimiting:     enableRateLimiting,
 		MaxConnectionsLimit:    maxConnections,
 		RateLimitExpiration:    time.Duration(expiration) * time.Minute,
-		APIKey:                 Config("apiKey"),
+		APIKey:                 Config("api_Key"),
 		SkipFailedRequests:     skip_failed_requests,
 		SkipSuccessfulRequests: skip_successful_requests,
 		Title:                  Config("metrics_title"),
 		FontURL:                Config("metrics_font_URL"),
+		JWTSecret:              Config("jwt_secret"),
 	}
 }

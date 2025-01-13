@@ -12,24 +12,32 @@ import (
 )
 
 const createShortLink = `-- name: CreateShortLink :one
-INSERT INTO shortly(id, short_link, long_link)
-VALUES($1, $2, $3)
-RETURNING id, short_link, long_link, created_at, updated_at
+INSERT INTO shortly(id, user_id, short_link, long_link)
+VALUES($1, $2, $3, $4)
+RETURNING id, user_id, short_link, long_link, click_count, created_at, updated_at
 `
 
 type CreateShortLinkParams struct {
 	ID        uuid.UUID `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
 	ShortLink string    `json:"short_link"`
 	LongLink  string    `json:"long_link"`
 }
 
 func (q *Queries) CreateShortLink(ctx context.Context, arg CreateShortLinkParams) (Shortly, error) {
-	row := q.db.QueryRowContext(ctx, createShortLink, arg.ID, arg.ShortLink, arg.LongLink)
+	row := q.db.QueryRowContext(ctx, createShortLink,
+		arg.ID,
+		arg.UserID,
+		arg.ShortLink,
+		arg.LongLink,
+	)
 	var i Shortly
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.ShortLink,
 		&i.LongLink,
+		&i.ClickCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -46,7 +54,7 @@ func (q *Queries) DeleteLink(ctx context.Context, shortLink string) error {
 }
 
 const getLinks = `-- name: GetLinks :many
-SELECT id, short_link, long_link, created_at, updated_at FROM shortly
+SELECT id, user_id, short_link, long_link, click_count, created_at, updated_at FROM shortly
 ORDER BY created_at DESC
 `
 
@@ -61,8 +69,10 @@ func (q *Queries) GetLinks(ctx context.Context) ([]Shortly, error) {
 		var i Shortly
 		if err := rows.Scan(
 			&i.ID,
+			&i.UserID,
 			&i.ShortLink,
 			&i.LongLink,
+			&i.ClickCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -80,7 +90,7 @@ func (q *Queries) GetLinks(ctx context.Context) ([]Shortly, error) {
 }
 
 const getLongLink = `-- name: GetLongLink :one
-SELECT id, short_link, long_link, created_at, updated_at FROM shortly
+SELECT id, user_id, short_link, long_link, click_count, created_at, updated_at FROM shortly
 WHERE short_link = $1
 LIMIT 1
 `
@@ -90,10 +100,60 @@ func (q *Queries) GetLongLink(ctx context.Context, shortLink string) (Shortly, e
 	var i Shortly
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.ShortLink,
 		&i.LongLink,
+		&i.ClickCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getUserLinks = `-- name: GetUserLinks :many
+SELECT id, user_id, short_link, long_link, click_count, created_at, updated_at FROM shortly
+WHERE user_id = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetUserLinks(ctx context.Context, userID uuid.UUID) ([]Shortly, error) {
+	rows, err := q.db.QueryContext(ctx, getUserLinks, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Shortly
+	for rows.Next() {
+		var i Shortly
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.ShortLink,
+			&i.LongLink,
+			&i.ClickCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const incrementClickCount = `-- name: IncrementClickCount :exec
+UPDATE shortly
+SET click_count = click_count + 1, updated_at = NOW()
+WHERE short_link = $1
+`
+
+func (q *Queries) IncrementClickCount(ctx context.Context, shortLink string) error {
+	_, err := q.db.ExecContext(ctx, incrementClickCount, shortLink)
+	return err
 }

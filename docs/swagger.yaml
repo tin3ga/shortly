@@ -6,6 +6,12 @@ definitions:
       url:
         type: string
     type: object
+  handler.PasswordInput:
+    description: Shorten link Model Password
+    properties:
+      password:
+        type: string
+    type: object
   handler.ShortenLinkModel:
     description: Shorten link Model Url, Custom_alias
     properties:
@@ -14,7 +20,24 @@ definitions:
       url:
         type: string
     type: object
-host: shortly-5p7d.onrender.com
+  handler.User:
+    description: User Model Username, email, Password
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  handler.UserInput:
+    properties:
+      identity:
+        type: string
+      password:
+        type: string
+    type: object
+host: localhost:8088
 info:
   contact:
     email: tinegagideon@outlook.com
@@ -25,7 +48,7 @@ info:
     url: https://mit-license.org/
   termsOfService: http://swagger.io/terms/
   title: Shortly API
-  version: 0.3.0
+  version: 0.4.0
 paths:
   /:
     get:
@@ -34,16 +57,7 @@ paths:
         "200":
           description: OK
       summary: Checks connectivity
-  /api/v1/:
-    get:
-      description: Returns all links
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-      summary: Fetch all links
-  /api/v1/{link}:
+  /{link}:
     get:
       description: Redirects to the original URL
       parameters:
@@ -58,7 +72,32 @@ paths:
         "404":
           description: Not Found
       summary: Fetch a Original URL by Short URL
-  /api/v1/shorten:
+  /api/v1/auth/:
+    post:
+      description: Returns a JWT token
+      parameters:
+      - description: Login a user
+        in: body
+        name: Identity
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UserInput'
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal Server Error
+      summary: Login user
+  /api/v1/links/all:
+    get:
+      description: Returns all links
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Fetch all links
+  /api/v1/links/shorten:
     delete:
       description: Returns a success message
       parameters:
@@ -77,7 +116,11 @@ paths:
           description: Not Found
         "500":
           description: Internal Server Error
+      security:
+      - BearerAuth: []
       summary: Delete url data by short url
+      tags:
+      - protected
     post:
       description: Returns a Short URL
       parameters:
@@ -96,5 +139,64 @@ paths:
           description: Forbidden
         "500":
           description: Internal Server Error
+      security:
+      - BearerAuth: []
       summary: Insert an entry for a Short URL and Long URL
+      tags:
+      - protected
+  /api/v1/links/userlinks:
+    get:
+      description: Returns all user links
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      security:
+      - BearerAuth: []
+      summary: Fetch all user links
+      tags:
+      - protected
+  /api/v1/users/:
+    post:
+      description: Returns a message
+      parameters:
+      - description: create a user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handler.User'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "409":
+          description: Conflict
+        "500":
+          description: Internal Server Error
+      summary: Create a user
+  /api/v1/users/delete:
+    delete:
+      description: Returns a success message
+      parameters:
+      - description: Delete a user
+        in: body
+        name: password
+        required: true
+        schema:
+          $ref: '#/definitions/handler.PasswordInput'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+      security:
+      - BearerAuth: []
+      summary: Delete user
+      tags:
+      - protected
 swagger: "2.0"

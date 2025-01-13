@@ -34,7 +34,32 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/": {
+        "/api/v1/auth/": {
+            "post": {
+                "description": "Returns a JWT token",
+                "summary": "Login user",
+                "parameters": [
+                    {
+                        "description": "Login a user",
+                        "name": "Identity",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.UserInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/v1/links/all": {
             "get": {
                 "description": "Returns all links",
                 "produces": [
@@ -48,9 +73,17 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/shorten": {
+        "/api/v1/links/shorten": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Returns a Short URL",
+                "tags": [
+                    "protected"
+                ],
                 "summary": "Insert an entry for a Short URL and Long URL",
                 "parameters": [
                     {
@@ -79,7 +112,15 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Returns a success message",
+                "tags": [
+                    "protected"
+                ],
                 "summary": "Delete url data by short url",
                 "parameters": [
                     {
@@ -108,7 +149,96 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/{link}": {
+        "/api/v1/links/userlinks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all user links",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "protected"
+                ],
+                "summary": "Fetch all user links",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/v1/users/": {
+            "post": {
+                "description": "Returns a message",
+                "summary": "Create a user",
+                "parameters": [
+                    {
+                        "description": "create a user",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.User"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "409": {
+                        "description": "Conflict"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/api/v1/users/delete": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a success message",
+                "tags": [
+                    "protected"
+                ],
+                "summary": "Delete user",
+                "parameters": [
+                    {
+                        "description": "Delete a user",
+                        "name": "password",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.PasswordInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request"
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
+        "/{link}": {
             "get": {
                 "description": "Redirects to the original URL",
                 "summary": "Fetch a Original URL by Short URL",
@@ -142,6 +272,15 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.PasswordInput": {
+            "description": "Shorten link Model Password",
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "handler.ShortenLinkModel": {
             "description": "Shorten link Model Url, Custom_alias",
             "type": "object",
@@ -153,14 +292,40 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "handler.User": {
+            "description": "User Model Username, email, Password",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.UserInput": {
+            "type": "object",
+            "properties": {
+                "identity": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.3.0",
-	Host:             "shortly-5p7d.onrender.com",
+	Version:          "0.4.0",
+	Host:             "localhost:8088",
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Shortly API",

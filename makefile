@@ -3,7 +3,7 @@ APP_NAME := shortly
 BUILD_DIR := ./bin
 
 GOOSE_DRIVER := postgres
-GOOSE_DBSTRING := db_url # replace with connection string
+GOOSE_DBSTRING := postgresql://postgres:mypassword@localhost:5432/postgres?sslmode=disable
 GOOSE_MIGRATION_DIR := sql/schema/
 
 
@@ -30,6 +30,9 @@ migrate-up: ## Apply all up migrations
 migrate-down: ## Rollback the last migration
 	@goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" down
 
+.PHONY: migrate-fix
+migrate-fix: ## Rollback the last migration
+	@goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) "$(GOOSE_DBSTRING)" fix
 
 
 .PHONY: run-dev
