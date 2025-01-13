@@ -12,17 +12,40 @@ import (
 	"github.com/tin3ga/shortly/internal/database"
 )
 
+// Password Input model info
+//
+//	@Description	Shorten link Model
+//	@Description	Password
+type PasswordInput struct {
+	Password string `json:"password"`
+}
+
+// User model info
+//
+//	@Description	User Model
+//	@Description	Username, email, Password
+type User struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
 }
 
+// createUser Create a new user
+//
+//	@Summary		Create a user
+//	@Description	Returns a message
+//	@Param			user	body	User	true	"create a user"
+//	@Success		200
+//	@Failure		400
+//	@Failure		409
+//	@Failure		500
+//	@Router			/api/v1/users/ [post]
 func CreateUser(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
-	type User struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
 
 	new_user := new(User)
 
@@ -83,10 +106,19 @@ func CreateUser(c *fiber.Ctx, queries *database.Queries, ctx context.Context) er
 
 }
 
+// deleteUser Delete user
+//
+//	@Summary		Delete user
+//	@Description	Returns a success message
+//	@Param			password	body	PasswordInput	true	"Delete a user"
+//	@Tags			protected
+//	@Security		BearerAuth
+//	@Success		200
+//	@Failure		400
+//	@Failure		500
+//	@Router			/api/v1/users/delete [delete]
 func DeleteUser(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
-	type PasswordInput struct {
-		Password string `json:"password"`
-	}
+
 	input := new(PasswordInput)
 	if err := c.BodyParser(input); err != nil {
 		log.Print(err)

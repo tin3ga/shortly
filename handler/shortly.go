@@ -42,7 +42,7 @@ type DeleteLinkModel struct {
 //	@Description	Returns all links
 //	@Produce		json
 //	@Success		200
-//	@Router			/api/v1/ [get]
+//	@Router			/api/v1/links/all [get]
 func GetLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
 	data, err := queries.GetLinks(ctx)
 	if err != nil {
@@ -53,6 +53,16 @@ func GetLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) erro
 	return c.JSON(data)
 
 }
+
+// getUserLinks Fetch all links associated to a user
+//
+//	@Summary		Fetch all user links
+//	@Description	Returns all user links
+//	@Tags			protected
+//	@Security		BearerAuth
+//	@Produce		json
+//	@Success		200
+//	@Router			/api/v1/links/userlinks [get]
 func GetUserLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
 
 	authHeader := c.Get("Authorization")
@@ -86,7 +96,7 @@ func GetUserLinks(c *fiber.Ctx, queries *database.Queries, ctx context.Context) 
 //	@Param			link	path	string	true	"Redirects to Original URL"
 //	@Success		301
 //	@Failure		404
-//	@Router			/api/v1/{link} [get]
+//	@Router			/{link} [get]
 func GetLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, rdb *redis.Client, ttl time.Duration) error {
 	link := c.Params("link")
 
@@ -156,11 +166,13 @@ func GetLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, rdb *
 //	@Summary		Insert an entry for a Short URL and Long URL
 //	@Description	Returns a Short URL
 //	@Param			shorten_link	body	ShortenLinkModel	true	"Shorten a Link (custom alias is optional)"
+//	@Tags			protected
+//	@Security		BearerAuth
 //	@Success		200
 //	@Failure		400
 //	@Failure		403
 //	@Failure		500
-//	@Router			/api/v1/shorten [post]
+//	@Router			/api/v1/links/shorten [post]
 func ShortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, urlStr string, apiKey string) error {
 	url := new(ShortenLinkModel)
 
@@ -280,11 +292,13 @@ func ShortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, u
 //	@Summary		Delete url data by short url
 //	@Description	Returns a success message
 //	@Param			url	body	DeleteLinkModel	true	"Delete a Link"
+//	@Tags			protected
+//	@Security		BearerAuth
 //	@Success		200
 //	@Failure		400
 //	@Failure		404
 //	@Failure		500
-//	@Router			/api/v1/shorten [delete]
+//	@Router			/api/v1/links/shorten [delete]
 func DeleteLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context) error {
 	url := new(DeleteLinkModel)
 

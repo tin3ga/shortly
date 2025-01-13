@@ -27,7 +27,7 @@ func SetupRoutes(app *fiber.App, queries *database.Queries, ctx context.Context,
 		return handler.CreateUser(c, queries, ctx)
 
 	})
-	user.Delete("/delete", func(c *fiber.Ctx) error {
+	user.Delete("/delete", middleware.Protected(), func(c *fiber.Ctx) error {
 		return handler.DeleteUser(c, queries, ctx)
 	})
 
@@ -43,7 +43,7 @@ func SetupRoutes(app *fiber.App, queries *database.Queries, ctx context.Context,
 	links.Get("/all", func(c *fiber.Ctx) error {
 		return handler.GetLinks(c, queries, ctx)
 	})
-	links.Get("/userlinks", func(c *fiber.Ctx) error {
+	links.Get("/userlinks", middleware.Protected(), func(c *fiber.Ctx) error {
 		return handler.GetUserLinks(c, queries, ctx)
 	})
 

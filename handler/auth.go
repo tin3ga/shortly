@@ -16,6 +16,11 @@ import (
 	"github.com/tin3ga/shortly/internal/database"
 )
 
+type UserInput struct {
+	Identity string `json:"identity"`
+	Password string `json:"password"`
+}
+
 func CheckPasswordHash(hash string, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
@@ -88,11 +93,15 @@ func ValidateToken(token *jwt.Token, username string) bool {
 	return username == uname
 }
 
+// loginUser Log in user
+//
+//	@Summary		Login user
+//	@Description	Returns a JWT token
+//	@Param			Identity	body	UserInput	true	"Login a user"
+//	@Success		200
+//	@Failure		500
+//	@Router			/api/v1/auth/ [post]
 func Login(c *fiber.Ctx, queries *database.Queries, ctx context.Context, jwtsecret string) error {
-	type UserInput struct {
-		Identity string `json:"identity"`
-		Password string `json:"password"`
-	}
 
 	login_identity := new(UserInput)
 
