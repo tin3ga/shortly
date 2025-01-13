@@ -23,10 +23,10 @@ import (
 	_ "github.com/tin3ga/shortly/docs"
 )
 
-const version = "0.3.0"
+const version = "0.4.0"
 
 //	@title			Shortly API
-//	@version		0.3.0
+//	@version		0.4.0
 //	@description	This is a URL Shortener backend API built with Go.
 //	@termsOfService	http://swagger.io/terms/
 //	@contact.name	API Support
