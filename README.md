@@ -56,6 +56,14 @@ This is a backend API built with Go. It is designed for scalability and simplici
 
 ### Deployment
 
+Using Docker:
+
+```bash
+docker compose up
+
+goose -dir ./sql/schema/ postgres postgresql://postgres:mypassword@localhost:5432/postgres?sslmode=disable up
+```
+
 For production, ensure you:
 
 - Use a secure .env file
@@ -67,6 +75,22 @@ For production, ensure you:
   ```
 
 - Deploy the binary or container to your server or cloud provider.
+
+### Testing
+
+Using [hey](https://github.com/rakyll/hey) to test rate limiter
+
+```bash
+./hey -n 1000 -c 10 http://localhost:8088/ap1/v1/links/all
+
+```
+
+Using [autocannon](https://www.npmjs.com/package/autocannon) to test caching
+enable or disable caching in the .env file
+
+```bash
+ autocannon -d 20 -c 50 --renderStatusCodes http://localhost:8088/api/v1/links/all
+```
 
 ## License
 
