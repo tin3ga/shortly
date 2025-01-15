@@ -14,7 +14,7 @@
         },
         "version": "0.4.0"
     },
-    "host": "localhost:8088",
+    "host": "shortly-5p7d.onrender.com",
     "basePath": "/",
     "paths": {
         "/": {

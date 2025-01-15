@@ -18,19 +18,37 @@ This is a backend API built with Go. It is designed for scalability and simplici
 
    ```
 
-3. Configure .env file:
+3. Create a [metadefender](https://metadefender.opswat.com/) cloud account for a free api key. Add key in the .env files
+
+4. Configure .env file from sample:
 
    ```shell
    PORT=8088
-   DATABASE_URL=postgresql://<user>:<pass>@<host>/<database>
+   DATABASE_URL=postgresql://postgres:mypassword@localhost:5432/postgres?sslmode=disable
    URL=http://localhost:8088/api/v1/
+   REDIS_ADDR=localhost:6379
+   REDIS_PASSWORD=
+   REDIS_DB=0
+   caching_enabled=true
+   cache_TTL=10
+   rate_limiting_enabled=True
+   max_connections_limit=1000
+   expiration=1
+   api_Key=sample_api
+   skip_failed_requests=false
+   skip_successful_requests=false
+   metrics_title=Shortly Monitor
+   metrics_font_URL=https://fonts.googleapis.com/css2?family=Roboto:wght@200;400&display=swap
+   jwt_secret=my_secret
 
    ```
 
 ### Configuration
 
-1. Add a GOOSE_DBSTRING in makefile
-2. Run make to set up migrations, dev dependencies etc.
+1. Setup a postgres database and redis db
+2. Replace the connection details in the env files
+3. Add a GOOSE_DBSTRING in makefile
+4. Run make to set up migrations, dev dependencies etc.
 
    ```bash
    make help

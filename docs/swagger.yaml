@@ -37,7 +37,7 @@ definitions:
       password:
         type: string
     type: object
-host: localhost:8088
+host: shortly-5p7d.onrender.com
 info:
   contact:
     email: tinegagideon@outlook.com
