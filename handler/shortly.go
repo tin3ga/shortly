@@ -12,9 +12,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/thanhpk/randstr"
+	"github.com/tin3ga/urlscan"
 
 	"github.com/tin3ga/shortly/internal/database"
-	"github.com/tin3ga/shortly/utils"
 )
 
 // Shorten Link model info
@@ -191,11 +191,15 @@ func ShortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, a
 	}
 
 	// Validate the URL using the external API
-	result, err := utils.URLValidation(url.Url, apiKey)
+	result, err := urlscan.Scan(apiKey, url.Url)
 	if err != nil {
 		if err.Error() == "API error" {
 			log.Print(err)
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Check that url is valid / try again later:)", "url": url.Url})
+		}
+		if err.Error() == "authentication failed, make sure your API Key is valid" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "External API error, make sure your API Key is valid:)"})
+
 		}
 		log.Print(err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "External API error, try again later:)"})
@@ -266,7 +270,6 @@ func ShortenLink(c *fiber.Ctx, queries *database.Queries, ctx context.Context, a
 		log.Printf("Error parsing UserID: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "message": "Invalid UserID format"})
 	}
-	log.Print(userID)
 
 	params := database.CreateShortLinkParams{
 		ID:        uuidUser,
